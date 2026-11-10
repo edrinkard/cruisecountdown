@@ -3,8 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cruise Countdown</title>
+<title>NCL Cruise Countdown</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script>
+  // Apply saved theme before first paint (avoids a flash of the wrong theme)
+  try { if (localStorage.getItem('cruise-theme') === 'day') document.documentElement.classList.add('day'); } catch (e) {}
+</script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -27,9 +31,18 @@
     overflow-x: hidden;
   }
 
+  /* ── DAY SKY (fades in over the night background) ── */
+  .sky {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background: linear-gradient(180deg, #4AA8E8 0%, #8FD0F5 50%, #DDF3FF 100%);
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+
   /* ── STARS ── */
   .stars {
     position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    transition: opacity 0.8s ease;
   }
   .star {
     position: absolute;
@@ -43,6 +56,68 @@
     to   { opacity: 0.9; transform: scale(1.2); }
   }
 
+  /* ── CLOUDS (day only) ── */
+  .clouds {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  .cloud {
+    position: absolute;
+    background: #fff;
+    border-radius: 100px;
+    opacity: 0.85;
+    animation: cloudDrift var(--cd) linear infinite;
+  }
+  .cloud::before, .cloud::after {
+    content: '';
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+  }
+  .cloud::before { width: 50%; height: 160%; top: -80%; left: 15%; }
+  .cloud::after  { width: 35%; height: 120%; top: -55%; left: 50%; }
+  @keyframes cloudDrift {
+    from { transform: translateX(-30vw); }
+    to   { transform: translateX(130vw); }
+  }
+
+  /* ── THEME TOGGLE ── */
+  .top-controls {
+    position: fixed;
+    top: 20px; left: 20px;
+    z-index: 10;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  #theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px 8px 10px;
+    border-radius: 100px;
+    border: 1px solid rgba(79,195,195,0.35);
+    background: rgba(11,31,58,0.6);
+    color: var(--foam);
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.4s, color 0.4s, border-color 0.4s;
+  }
+  #theme-toggle .icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+  #theme-toggle:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+  }
+
   /* ── MAIN LAYOUT ── */
   .scene {
     position: relative;
@@ -51,7 +126,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 20px 200px;
+    padding: 76px 20px 250px;
     z-index: 1;
   }
 
@@ -86,7 +161,7 @@
     font-weight: 300;
     letter-spacing: 0.1em;
     color: rgba(240,248,255,0.55);
-    margin-bottom: 56px;
+    margin-bottom: 40px;
     text-align: center;
   }
 
@@ -96,7 +171,7 @@
     gap: clamp(12px, 3vw, 32px);
     flex-wrap: wrap;
     justify-content: center;
-    margin-bottom: 48px;
+    margin-bottom: 36px;
   }
 
   .porthole-wrap {
@@ -181,6 +256,9 @@
     letter-spacing: 0.08em;
     color: rgba(240,248,255,0.65);
     margin-bottom: 24px;
+    text-align: center;
+    flex-wrap: wrap;
+    justify-content: center;
   }
   .date-badge .anchor {
     font-size: 14px;
@@ -225,6 +303,82 @@
     letter-spacing: 0.1em;
   }
 
+  /* ── CHECK-IN TICKET ── */
+  .checkin {
+    position: relative;
+    margin-top: 22px;
+    width: min(420px, 90vw);
+    padding: 20px 28px 22px;
+    border-radius: 14px;
+    background: rgba(240,248,255,0.05);
+    border: 1px dashed rgba(245,200,66,0.45);
+    text-align: center;
+  }
+  /* ticket notches */
+  .checkin::before, .checkin::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 18px; height: 18px;
+    margin-top: -9px;
+    border-radius: 50%;
+    background: var(--navy);
+    border: 1px dashed rgba(245,200,66,0.45);
+    transition: background 0.8s ease;
+  }
+  .checkin::before { left: -10px; clip-path: inset(0 0 0 50%); }
+  .checkin::after  { right: -10px; clip-path: inset(0 50% 0 0); }
+
+  .checkin-title {
+    font-size: 0.72rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .checkin-date {
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+    color: rgba(240,248,255,0.75);
+    margin-bottom: 14px;
+  }
+  .checkin-date strong {
+    color: var(--seafoam);
+    font-weight: 600;
+  }
+  .checkin-timer {
+    display: flex;
+    justify-content: center;
+    gap: clamp(10px, 3vw, 22px);
+  }
+  .checkin-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 44px;
+  }
+  .checkin-unit b {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--foam);
+    line-height: 1.1;
+  }
+  .checkin-unit span {
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(240,248,255,0.4);
+    font-weight: 600;
+  }
+  .checkin-open {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
   /* ── OCEAN & SHIP ── */
   .ocean-scene {
     position: fixed;
@@ -242,6 +396,7 @@
     height: 100%;
   }
   .wave-layer svg { width: 100%; height: 100%; }
+  .wave-layer path { transition: fill 0.8s ease; }
 
   .wave-back {
     animation: waveScroll 14s linear infinite;
@@ -295,7 +450,7 @@
     100% { opacity: 0; transform: translateY(-50px) scale(1.8); }
   }
 
-  /* moon / compass */
+  /* moon / sun */
   .moon {
     position: fixed;
     top: 48px; right: 6vw;
@@ -305,6 +460,7 @@
     box-shadow: 0 0 40px rgba(245,200,66,0.35), 0 0 80px rgba(245,200,66,0.1);
     z-index: 1;
     animation: moonGlow 6s ease-in-out infinite alternate;
+    transition: width 0.8s ease, height 0.8s ease, background 0.8s ease;
   }
   @keyframes moonGlow {
     from { box-shadow: 0 0 30px rgba(245,200,66,0.3), 0 0 60px rgba(245,200,66,0.08); }
@@ -328,11 +484,6 @@
 
   /* ── MOTION PERMISSION BUTTON (iOS) ── */
   #motion-btn {
-    position: fixed;
-    bottom: 200px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
     display: none; /* shown by JS when needed */
     align-items: center;
     gap: 8px;
@@ -344,12 +495,15 @@
     font-weight: 600;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: 100px;
     cursor: pointer;
     backdrop-filter: blur(8px);
     box-shadow: 0 0 20px rgba(79,195,195,0.15);
     animation: btnPulse 2s ease-in-out infinite alternate;
+  }
+  @media (max-width: 480px) {
+    #motion-btn .long { display: none; }
   }
   @keyframes btnPulse {
     from { box-shadow: 0 0 12px rgba(79,195,195,0.15); }
@@ -362,6 +516,93 @@
   .gyro-active .wave-mid   { animation-play-state: running; }
   .gyro-active .wave-front { animation-play-state: running; }
 
+  /* ════════════════════════════════════
+     ☀️  DAY THEME
+     ════════════════════════════════════ */
+  html.day .sky    { opacity: 1; }
+  html.day .stars  { opacity: 0; }
+  html.day .clouds { opacity: 1; }
+
+  html.day #theme-toggle {
+    background: rgba(255,255,255,0.65);
+    color: #0B1F3A;
+    border-color: rgba(11,31,58,0.2);
+  }
+
+  /* moon becomes the sun */
+  html.day .moon {
+    width: 84px; height: 84px;
+    background: radial-gradient(circle at 45% 45%, #fffef2 0%, #ffe066 45%, #ffb703 100%);
+    animation-name: sunGlow;
+  }
+  @keyframes sunGlow {
+    from { box-shadow: 0 0 40px rgba(255,214,64,0.6), 0 0 90px rgba(255,190,30,0.3); }
+    to   { box-shadow: 0 0 70px rgba(255,214,64,0.8), 0 0 140px rgba(255,190,30,0.4); }
+  }
+
+  html.day .eyebrow  { color: #0B6E78; }
+  html.day h1        { color: #0B1F3A; text-shadow: 0 2px 30px rgba(255,255,255,0.6); }
+  html.day h1 em     { color: #C46A00; }
+  html.day .subhead  { color: rgba(11,31,58,0.7); font-weight: 400; }
+
+  html.day .porthole {
+    background: radial-gradient(circle at 35% 35%, #ffffff, #cfeefc 70%, #a5dcf5);
+    border-color: #c9a330;
+    box-shadow:
+      0 0 0 6px #e6c766,
+      0 0 0 9px #b48a1e,
+      0 6px 24px rgba(11,31,58,0.2),
+      inset 0 2px 8px rgba(255,255,255,0.8),
+      inset 0 -4px 10px rgba(11,31,58,0.15);
+  }
+  html.day .porthole::before { border-color: rgba(180,138,30,0.35); }
+  html.day .porthole-number {
+    color: #0B1F3A;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+  }
+  html.day .porthole-label { color: rgba(11,31,58,0.6); }
+  html.day .sep            { color: #0B1F3A; opacity: 0.35; }
+
+  html.day .date-badge {
+    background: rgba(255,255,255,0.55);
+    border-color: rgba(11,31,58,0.15);
+    color: rgba(11,31,58,0.75);
+  }
+  html.day .date-badge strong { color: #0B6E78; }
+
+  html.day .progress-label { color: rgba(11,31,58,0.55); }
+  html.day .progress-track { background: rgba(11,31,58,0.12); }
+  html.day .progress-pct   { color: rgba(11,31,58,0.5); }
+
+  html.day .checkin {
+    background: rgba(255,255,255,0.55);
+    border-color: rgba(180,138,30,0.6);
+  }
+  html.day .checkin::before, html.day .checkin::after {
+    background: #9fd6f4;
+    border-color: rgba(180,138,30,0.6);
+  }
+  html.day .checkin-title       { color: #A85B00; }
+  html.day .checkin-date        { color: rgba(11,31,58,0.8); }
+  html.day .checkin-date strong { color: #0B6E78; }
+  html.day .checkin-unit b      { color: #0B1F3A; }
+  html.day .checkin-unit span   { color: rgba(11,31,58,0.55); }
+  html.day .checkin-open        { color: #A85B00; }
+
+  html.day .arrived { color: #C46A00; text-shadow: 0 2px 20px rgba(255,255,255,0.7); }
+
+  html.day .wave-back  path { fill: #7CC4E8; }
+  html.day .wave-mid   path { fill: #2F8FC4; }
+  html.day .wave-front path { fill: #135A8C; }
+  html.day .ship-svg { filter: drop-shadow(0 8px 18px rgba(11,31,58,0.35)); }
+  html.day .smoke    { background: rgba(255,255,255,0.6); }
+
+  html.day #motion-btn {
+    background: rgba(255,255,255,0.8);
+    color: #0B6E78;
+    border-color: rgba(11,110,120,0.4);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
   }
@@ -369,14 +610,22 @@
 </head>
 <body>
 
+<div class="sky"></div>
 <div class="stars" id="stars"></div>
-<button id="motion-btn">🌊 Enable Motion</button>
+<div class="clouds" id="clouds"></div>
+
+<div class="top-controls">
+  <button id="theme-toggle" type="button" aria-pressed="false">
+    <span class="icon" aria-hidden="true">☀️</span><span class="label">Day</span>
+  </button>
+  <button id="motion-btn" type="button">🌊 <span class="long">Enable</span> Motion</button>
+</div>
 <div class="moon"></div>
 
 <div class="scene">
   <p class="eyebrow">⚓ All Hands on Deck</p>
-  <h1>Set Sail for<br><em>Adventure</em></h1>
-  <p class="subhead">Embarkation · October 10, 2026 · 10:00 AM</p>
+  <h1>Set Sail for<br><em>NCL</em></h1>
+  <p class="subhead">Embarkation · December 7, 2027 · 9:30 AM</p>
 
   <div id="countdown-wrap">
     <div class="countdown" id="countdown">
@@ -404,7 +653,7 @@
     <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
       <div class="date-badge">
         <span class="anchor">⚓</span>
-        Departing <strong id="departure-label">October 10, 2026</strong> at <strong>10:00 AM</strong>
+        <span>Departing <strong id="departure-label">December 7, 2027</strong> at <strong>9:30 AM</strong></span>
       </div>
       <div class="progress-wrap">
         <div class="progress-label">
@@ -415,6 +664,18 @@
           <div class="progress-fill" id="progress-fill" style="width:0%"></div>
         </div>
         <div class="progress-pct" id="progress-pct"></div>
+      </div>
+
+      <!-- Check-in section -->
+      <div class="checkin" id="checkin">
+        <p class="checkin-title">🎫 Check-In Starts</p>
+        <p class="checkin-date"><strong>Sunday, November 14, 2027</strong> · 12:00 AM Eastern Time</p>
+        <div class="checkin-timer" id="checkin-timer">
+          <div class="checkin-unit"><b id="ci-days">--</b><span>Days</span></div>
+          <div class="checkin-unit"><b id="ci-hours">--</b><span>Hrs</span></div>
+          <div class="checkin-unit"><b id="ci-minutes">--</b><span>Min</span></div>
+          <div class="checkin-unit"><b id="ci-seconds">--</b><span>Sec</span></div>
+        </div>
       </div>
     </div>
   </div>
@@ -522,10 +783,49 @@
     starsEl.appendChild(s);
   }
 
+  // ── CLOUDS (visible in day theme) ──
+  const cloudsEl = document.getElementById('clouds');
+  for (let i = 0; i < 6; i++) {
+    const c = document.createElement('div');
+    c.className = 'cloud';
+    const w = Math.random() * 90 + 70;
+    const dur = Math.random() * 60 + 70;
+    c.style.cssText = `
+      width:${w}px; height:${w * 0.32}px;
+      top:${Math.random() * 40 + 5}%;
+      left:0;
+      opacity:${(Math.random() * 0.35 + 0.55).toFixed(2)};
+      --cd:${dur.toFixed(0)}s;
+      animation-delay:-${(Math.random() * dur).toFixed(0)}s;
+    `;
+    cloudsEl.appendChild(c);
+  }
+
+  // ── THEME TOGGLE ──
+  const root = document.documentElement;
+  const themeBtn = document.getElementById('theme-toggle');
+
+  function syncThemeButton() {
+    const isDay = root.classList.contains('day');
+    themeBtn.querySelector('.icon').textContent  = isDay ? '🌙' : '☀️';
+    themeBtn.querySelector('.label').textContent = isDay ? 'Night' : 'Day';
+    themeBtn.setAttribute('aria-pressed', String(isDay));
+    themeBtn.setAttribute('aria-label', isDay ? 'Switch to night theme' : 'Switch to day theme');
+  }
+
+  themeBtn.addEventListener('click', () => {
+    root.classList.toggle('day');
+    try { localStorage.setItem('cruise-theme', root.classList.contains('day') ? 'day' : 'night'); } catch (e) {}
+    syncThemeButton();
+  });
+  syncThemeButton();
+
   // ── COUNTDOWN ──
-  const target = new Date('2028-12-05T14:00:00');
+  const target  = new Date('2027-12-07T09:30:00');        // departure (device's local time)
+  const checkIn = new Date('2027-11-14T00:00:00-05:00');  // 12:00 AM Eastern (EST)
   const RANGE_DAYS = 365;
   const rangeMs = RANGE_DAYS * 24 * 60 * 60 * 1000;
+  let departed = false;
 
   function pad(n) { return String(n).padStart(2,'0'); }
 
@@ -535,10 +835,27 @@
     setTimeout(() => { el.textContent = val; el.classList.remove('flip'); }, 150);
   }
 
+  function tickCheckIn(now) {
+    const timer = document.getElementById('checkin-timer');
+    if (!timer) return;
+    const diff = checkIn - now;
+    if (diff <= 0) {
+      timer.outerHTML = '<p class="checkin-open">✅ Check-in is open!</p>';
+      return;
+    }
+    const t = Math.floor(diff / 1000);
+    document.getElementById('ci-days').textContent    = Math.floor(t / 86400);
+    document.getElementById('ci-hours').textContent   = pad(Math.floor((t % 86400) / 3600));
+    document.getElementById('ci-minutes').textContent = pad(Math.floor((t % 3600) / 60));
+    document.getElementById('ci-seconds').textContent = pad(t % 60);
+  }
+
   function tick() {
+    if (departed) return;
     const now = new Date();
     const diff = target - now;
     if (diff <= 0) {
+      departed = true;
       document.getElementById('countdown-wrap').innerHTML =
         '<p class="arrived">🛳️ Bon Voyage! The voyage begins!</p>';
       return;
@@ -554,6 +871,8 @@
     const pct       = Math.min(100, (elapsed / (target - startRef)) * 100);
     document.getElementById('progress-fill').style.width = pct.toFixed(2) + '%';
     document.getElementById('progress-pct').textContent  = pct.toFixed(1) + '% of the way there';
+
+    tickCheckIn(now);
   }
 
   tick();
